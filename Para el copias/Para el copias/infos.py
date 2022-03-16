@@ -70,10 +70,10 @@ def createStat(username,userdata,isadmin):
     if userdata['cloudtype'] == 'moodle':
         msg+= '📕RepoID: ' + str(userdata['moodle_repo_id'])+'\n'
 
-    msg+= '》CloudType: ' + str(userdata['cloudtype'])+'\n'
+    msg+= '🆙CloudType: ' + str(userdata['cloudtype'])+'\n'
     if userdata['cloudtype'] == 'cloud':
         msg+= '》Dir: /' + str(userdata['dir'])+'\n'
-    msg+= '》Tamaño: ' + sizeof_fmt(userdata['zips']*1024*1024) + '\n\n'
+    msg+= '📂Tamaño: ' + sizeof_fmt(userdata['zips']*1024*1024) + '\n\n'
     msgAdmin = '❌'
     if isadmin:
         msgAdmin = '✔️'
@@ -81,5 +81,5 @@ def createStat(username,userdata,isadmin):
     proxy = '❌'
     if userdata['proxy'] !='':
        proxy = '✔️'
-    msg+= '》Proxy : ' + proxy + '\n\n'
+    msg+= '☁️Proxy : ' + proxy + '\n\n'
     return msg
