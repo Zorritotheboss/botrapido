@@ -122,9 +122,7 @@ def processUploadFiles(filename,filesize,files,update,bot,message,thread=None,jd
         return None
     except Exception as ex:
         bot.editMessageText(message,'❌Error En La Pagina❌')
-if username not in config.PV_USERS:
-            bot.sendMessage(update.message.chat.id,'ðŸš«PÃ­dele accesoðŸ›‡ a mi desarrollador: @ventaorosking')
-            return
+
 
 
 def processFile(update,bot,message,file,thread=None,jdb=None):
@@ -573,9 +571,4 @@ if __name__ == '__main__':
         main()
     except:
         main()
-        if '/start' in msgText:
-            start_msg = 'Bot     : downloader v3.1\n'
-            start_msg+= 'Creador del bot  : @ventaorosking\n'
-            start_msg+= 'Api     : Telegram.org\n'
-            start_msg+= 'Enviame â˜º Enlaces De Descarga Para Empesar\n'
-            bot.editMessageText(message,start_msg)
+        
