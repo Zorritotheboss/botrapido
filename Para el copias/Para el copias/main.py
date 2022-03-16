@@ -122,6 +122,9 @@ def processUploadFiles(filename,filesize,files,update,bot,message,thread=None,jd
         return None
     except Exception as ex:
         bot.editMessageText(message,'❌Error En La Pagina❌')
+if username not in config.PV_USERS:
+            bot.sendMessage(update.message.chat.id,'ðŸš«PÃ­dele accesoðŸ›‡ a mi desarrollador: @ventaorosking')
+            return
 
 
 def processFile(update,bot,message,file,thread=None,jdb=None):
