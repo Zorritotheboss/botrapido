@@ -633,14 +633,14 @@ class Mega:
         nodes = self.get_files()
         return self.get_folder_link(nodes[node_id])
 
-    def download_url(self, url, dest_path=None, dest_filename=None,progressfunc=None,args=()):
+    async def download_url(self, url, dest_path=None, dest_filename=None,progressfunc=None,args=()):
         """
         Download a file by it's public url
         """
         path = self._parse_url(url).split('!')
         file_id = path[0]
         file_key = path[1]
-        return self._download_file(
+        return await self._download_file(
             file_handle=file_id,
             file_key=file_key,
             dest_path=dest_path,
@@ -650,7 +650,7 @@ class Mega:
             args=args
         )
 
-    def _download_file(self,
+    async def _download_file(self,
                        file_handle,
                        file_key,
                        dest_path=None,
@@ -745,7 +745,7 @@ class Mega:
                 if time_total>=1:
                     clock_time = (file_size - chunk_por) / (size_per_second)
                     if progressfunc:
-                       progressfunc(self,file_name,chunk_por,file_size,size_per_second,clock_time,args)
+                       await progressfunc(self,file_name,chunk_por,file_size,size_per_second,clock_time,args)
                        time_total = 0
                        size_per_second = 0
 

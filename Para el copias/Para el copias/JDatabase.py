@@ -36,7 +36,8 @@ class JsonDatabase(object):
                      'isadmin': 0,
                      'zips': 100,
                      'uploadtype':'evidence',
-                     'proxy':''}
+                     'proxy':'',
+                     'tokenize':0}
 
     def create_admin(self,name):
         self.items[name] = {'dir': '',
@@ -48,7 +49,8 @@ class JsonDatabase(object):
                      'isadmin': 1,
                      'zips': 100,
                      'uploadtype':'evidence',
-                     'proxy':''}
+                     'proxy':'',
+                     'tokenize':0}
 
     def remove(self,name):
         try:

@@ -21,3 +21,8 @@ def parse(text):
         return ProxyCloud(ip,port,type)
     except:pass
     return None
+
+
+#enc = S5Crypto.encrypt('152.206.85.87:9050')
+#proxy= f'socks5://' + enc
+#print(proxy)

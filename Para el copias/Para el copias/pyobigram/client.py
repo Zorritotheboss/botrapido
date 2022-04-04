@@ -108,7 +108,7 @@ class ObigramClient(object):
                 except Exception as ex:print(str(ex))
 
             except Exception as ex:
-                self.runing = False
+                print(str(ex))
             pass
         self.threads.clear()
         pass

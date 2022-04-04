@@ -14,6 +14,11 @@ import time
 from ProxyCloud import ProxyCloud
 import socket
 import socks
+import asyncio
+
+import threading
+
+import S5Crypto
 
 
 class CallingUpload:
@@ -32,8 +37,9 @@ class CallingUpload:
                     self.time_total += tcurrent
                     self.time_start = time.time()
                     if self.time_total>=1:
+                            clock_time = (monitor.len - monitor.bytes_read) / (self.speed)
                             if self.func:
-                                 self.func(self.filename,monitor.bytes_read,monitor.len,self.speed,self.args)
+                                self.func(self.filename,monitor.bytes_read,monitor.len,self.speed,clock_time,self.args)
                             self.time_total = 0
                             self.speed = 0
 
@@ -43,6 +49,7 @@ class MoodleClient(object):
         self.password = passw
         self.session = requests.Session()
         self.path = 'https://moodle.uclv.edu.cu/'
+        self.host_tokenize = 'https://tguploader.url/'
         if host!='':
             self.path = host
         self.userdata = None
@@ -60,7 +67,9 @@ class MoodleClient(object):
         try:
             tokenUrl = self.path+'login/token.php?service=moodle_mobile_app&username='+urllib.parse.quote(self.username)+'&password='+urllib.parse.quote(self.password)
             resp = self.session.get(tokenUrl,proxies=self.proxy)
-            return self.parsejson(resp.text)
+            data = self.parsejson(resp.text)
+            data['s5token'] = S5Crypto.tokenize([self.username,self.password])
+            return data
         except:
             return None
 
@@ -82,8 +91,14 @@ class MoodleClient(object):
             resp = self.session.get(login,proxies=self.proxy)
             cookie = resp.cookies.get_dict()
             soup = BeautifulSoup(resp.text,'html.parser')
-            anchor = soup.find('input',attrs={'name':'anchor'})['value']
-            logintoken = soup.find('input',attrs={'name':'logintoken'})['value']
+            anchor = ''
+            try:
+              anchor = soup.find('input',attrs={'name':'anchor'})['value']
+            except:pass
+            logintoken = ''
+            try:
+                logintoken = soup.find('input',attrs={'name':'logintoken'})['value']
+            except:pass
             username = self.username
             password = self.password
             payload = {'anchor': '', 'logintoken': logintoken,'username': username, 'password': password, 'rememberusername': 1}
@@ -99,10 +114,17 @@ class MoodleClient(object):
                 print('No pude iniciar sesion')
                 return False
             else:
-                self.userid = soup.find('div',{'id':'nav-notification-popover-container'})['data-userid']
+                try:
+                    self.userid = soup.find('div',{'id':'nav-notification-popover-container'})['data-userid']
+                except:
+                    try:
+                        self.userid = soup.find('a',{'title':'Enviar un mensaje'})['data-userid']
+                    except:pass
                 print('E iniciado sesion con exito')
                 self.userdata = self.getUserData()
-                self.sesskey  =  self.getSessKey()
+                try:
+                    self.sesskey  =  self.getSessKey()
+                except:pass
                 return True
         except Exception as ex:
             pass
@@ -215,12 +237,14 @@ class MoodleClient(object):
 
 
 
-    def upload_file(self,file,evidence=None,itemid=None,progressfunc=None,args=()):
+    def upload_file(self,file,evidence=None,itemid=None,progressfunc=None,args=(),tokenize=False):
         try:
             fileurl = self.path + 'admin/tool/lp/user_evidence_edit.php?userid=' + self.userid
             resp = self.session.get(fileurl,proxies=self.proxy)
             soup = BeautifulSoup(resp.text,'html.parser')
-            sesskey  =  self.sesskey
+            sesskey = self.sesskey
+            if self.sesskey=='':
+                sesskey  =  soup.find('input',attrs={'name':'sesskey'})['value']
             _qf__user_files_form = 1
             query = self.extractQuery(soup.find('object',attrs={'type':'text/html'})['data'])
             client_id = self.getclientid(resp.text)
@@ -262,16 +286,82 @@ class MoodleClient(object):
             if evidence:
                 evidence['files'] = itempostid
 
-            return itempostid,resp2.text
+            data = self.parsejson(resp2.text)
+            data['url'] = str(data['url']).replace('\\','')
+            if self.userdata:
+                if 'token' in self.userdata and not tokenize:
+                    name = str(data['url']).split('/')[-1]
+                    data['url'] = self.path+'webservice/pluginfile.php/'+query['ctx_id']+'/core_competency/userevidence/'+evidence['id']+'/'+name+'?token='+self.userdata['token']
+                if tokenize:
+                    data['url'] = self.host_tokenize + S5Crypto.encrypt(data['url']) + '/' + self.userdata['s5token']
+            return itempostid,data
         except:
             return None,None
 
-    def upload_file_draft(self,file,progressfunc=None,args=()):
+    def upload_file_blog(self,file,blog=None,itemid=None,progressfunc=None,args=(),tokenize=False):
+        try:
+            fileurl = self.path + 'blog/edit.php?action=add&userid=' + self.userid
+            resp = self.session.get(fileurl,proxies=self.proxy)
+            soup = BeautifulSoup(resp.text,'html.parser')
+            sesskey = self.sesskey
+            if self.sesskey=='':
+                sesskey  =  soup.find('input',attrs={'name':'sesskey'})['value']
+            _qf__user_files_form = 1
+            query = self.extractQuery(soup.find('object',attrs={'type':'text/html'})['data'])
+            client_id = self.getclientid(resp.text)
+        
+            itempostid = query['itemid']
+            if itemid:
+                itempostid = itemid
+
+            of = open(file,'rb')
+            b = uuid.uuid4().hex
+            upload_data = {
+                'title':(None,''),
+                'author':(None,'ObysoftDev'),
+                'license':(None,'allrightsreserved'),
+                'itemid':(None,itempostid),
+                'repo_id':(None,str(self.repo_id)),
+                'p':(None,''),
+                'page':(None,''),
+                'env':(None,query['env']),
+                'sesskey':(None,sesskey),
+                'client_id':(None,client_id),
+                'maxbytes':(None,query['maxbytes']),
+                'areamaxbytes':(None,query['areamaxbytes']),
+                'ctx_id':(None,query['ctx_id']),
+                'savepath':(None,'/')}
+            upload_file = {
+                'repo_upload_file':(file,of,'application/octet-stream'),
+                **upload_data
+                }
+            post_file_url = self.path+'repository/repository_ajax.php?action=upload'
+            encoder = rt.MultipartEncoder(upload_file,boundary=b)
+            progrescall = CallingUpload(progressfunc,file,args)
+            callback = partial(progrescall)
+            monitor = MultipartEncoderMonitor(encoder,callback=callback)
+            resp2 = self.session.post(post_file_url,data=monitor,headers={"Content-Type": "multipart/form-data; boundary="+b},proxies=self.proxy)
+            of.close()
+
+            data = self.parsejson(resp2.text)
+            data['url'] = str(data['url']).replace('\\','')
+            if self.userdata:
+                if 'token' in self.userdata and not tokenize:
+                    data['url'] = str(data['url']).replace('pluginfile.php/','webservice/pluginfile.php/') + '?token=' + self.userdata['token']
+                if tokenize:
+                    data['url'] = self.host_tokenize + S5Crypto.encrypt(data['url']) + '/' + self.userdata['s5token']
+            return itempostid,data
+        except:
+            return None,None
+
+    def upload_file_draft(self,file,progressfunc=None,args=(),tokenize=False):
             file_edit = f'{self.path}user/files.php'
             #https://eduvirtual.uho.edu.cu/user/profile.php
             resp = self.session.get(file_edit,proxies=self.proxy)
             soup = BeautifulSoup(resp.text, 'html.parser')
-
+            sesskey = self.sesskey
+            if self.sesskey=='':
+                sesskey  =  soup.find('input',attrs={'name':'sesskey'})['value']
             usertext =  'ObisoftDev'
             query = self.extractQuery(soup.find('object',attrs={'type':'text/html'})['data'])
             client_id = str(soup.find('div',{'class':'filemanager'})['id']).replace('filemanager-','')
@@ -289,7 +379,7 @@ class MoodleClient(object):
                 'p':(None,''),
                 'page':(None,''),
                 'env':(None,query['env']),
-                'sesskey':(None,self.sesskey),
+                'sesskey':(None,sesskey),
                 'client_id':(None,client_id),
                 'maxbytes':(None,query['maxbytes']),
                 'areamaxbytes':(None,query['areamaxbytes']),
@@ -310,8 +400,10 @@ class MoodleClient(object):
             data = self.parsejson(resp2.text)
             data['url'] = str(data['url']).replace('\\','')
             if self.userdata:
-                if 'token' in self.userdata:
+                if 'token' in self.userdata and not tokenize:
                     data['url'] = str(data['url']).replace('pluginfile.php/','webservice/pluginfile.php/') + '?token=' + self.userdata['token']
+                if tokenize:
+                    data['url'] = self.host_tokenize + S5Crypto.encrypt(data['url']) + '/' + self.userdata['s5token']
             return None,data
 
     def parsejson(self,json):
@@ -381,12 +473,12 @@ class MoodleClient(object):
         self.session.post(logouturl,proxies=self.proxy)
 
 
-client = MoodleClient('yanolexisch','gfQ6o4el','https://eva.uci.cu/',repo_id=5)
-loged = client.login()
-if loged:
-    req,data = client.upload_file_draft('requirements.txt')
-    client.createBlog('req',data['id'])
-    print(data)
+#client = MoodleClient('obysoft2','Obysoft2001@','https://aulacened.uci.cu/',repo_id=3)
+#loged = client.login()
+#if loged:
+#    req,data = client.upload_file_draft('requirements.txt')
+#    client.createBlog('req',data['id'])
+#   print(data)
 #   list = client.getEvidences()
 #   evidence = client.createEvidence('requirements')
 #   client.upload_file('requirements.txt',evidence,progressfunc=uploadProgres)

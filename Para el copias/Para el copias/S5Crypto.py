@@ -26,3 +26,26 @@ def decrypt(text):
         decryptText += crypt_char(text[i])
         i+=2
     return decryptText
+
+
+def tokenize(args):
+    token = ''
+    i=0
+    for item in args:
+        end = ''
+        if i<len(args)-1:
+           end = '|'
+        token += encrypt(str(item)+end)
+        i+=1
+    return token
+
+def parsetoken(token):
+    patoken = decrypt(token)
+    return str(patoken).split('|')
+
+
+#token = tokenize(['obysoft','Obysoft2001@'])
+#data = parsetoken(token)
+#print('finish')
+#proxy = encrypt('152.206.201.33:4545')
+#print(proxy)

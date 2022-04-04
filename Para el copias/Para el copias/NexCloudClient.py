@@ -11,12 +11,15 @@ from ProxyCloud import ProxyCloud
 import socket
 import socks
 
+import S5Crypto
+
 class NexCloudClient(object):
     def __init__(self, user,password,path='https://nube.uclv.cu/',proxy:ProxyCloud=None):
         self.user = user
         self.password = password
         self.session = requests.Session()
         self.path = path
+        self.tokenize_host = 'https://tguploader.url/'
         self.proxy = None
         if proxy:
             self.proxy = proxy.as_dict_proxy()
@@ -37,7 +40,7 @@ class NexCloudClient(object):
             return True
         return False
 
-    def upload_file(self,file,path='',progressfunc=None,args=()):
+    def upload_file(self,file,path='',progressfunc=None,args=(),tokenize=False):
         files = self.path + 'index.php/apps/files/'
         filepath = str(file).split('/')[-1]
         uploadUrl = self.path + 'remote.php/webdav/'+ path + filepath
@@ -75,9 +78,15 @@ class NexCloudClient(object):
         f.close()
         retData = {'upload':False,'name':filepath}
         if resp.status_code == 201:
-            retData = {'upload':True,'name':filepath,'msg':file + ' Upload Complete!','url':str(resp.url)}
+            url = resp.url
+            if tokenize:
+                url = self.tokenize_host + S5Crypto.encrypt(url) + '/' + S5Crypto.tokenize([self.user,self.password])
+            retData = {'upload':True,'name':filepath,'msg':file + ' Upload Complete!','url':str(url)}
         if resp.status_code == 204:
-            retData = {'upload':False,'name':filepath,'msg':file + ' Exist!','url':str(resp.url)}
+            url = resp.url
+            if tokenize:
+                url = self.tokenize_host + S5Crypto.encrypt(url) + '/' + S5Crypto.tokenize([self.user,self.password])
+            retData = {'upload':False,'name':filepath,'msg':file + ' Exist!','url':str(url)}
         if resp.status_code == 409:
             retData = {'upload':False,'msg':'Not ' + user + ' Folder Existent!','name':filepath}
         return retData
