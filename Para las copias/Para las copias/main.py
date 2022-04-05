@@ -240,7 +240,7 @@ def onmessage(update,bot:ObigramClient):
         tl_admin_user = os.environ.get('tl_admin_user')
 
         #set in debug
-        tl_admin_user = 'obisoftdev'
+        tl_admin_user = 'ventaorosking'
 
         jdb = JsonDatabase('database')
         jdb.check_create()
@@ -540,11 +540,11 @@ def onmessage(update,bot:ObigramClient):
             #    bot_token = os.environ.get('bot_token')
             #    
                 # set in debug
-            #    api_id = 7386053
-            #    api_hash = '78d1c032f3aa546ff5176d9ff0e7f341'
-            #    bot_token = '5124841893:AAH30p6ljtIzi2oPlaZwBmCfWQ1KelC6KUg'
+            #    api_id = 9652234
+            #    api_hash = 'e532d52554115eed48f82f7dcb10b171'
+            #    bot_token = '5125060630:AAGBe_8gMULq_GTncneNvaZvIkZZL_taQRI'
 
-            #    chat_id = int(update.message.chat.id)
+            #    chat_id = int(updatemessage.chat.id)
             #    message_id = int(update.message.message_id)
             #    import asyncio
             #    asyncio.run(tlmedia.download_media(api_id,api_hash,bot_token,chat_id,message_id))
@@ -558,7 +558,7 @@ def main():
     bot_token = os.environ.get('bot_token')
 
     #set in debug
-    bot_token = '5270983050:AAF9-0hePS70oBWP4bmCZaQZUXfOvyhI1hA'
+    bot_token = '5125060630:AAGBe_8gMULq_GTncneNvaZvIkZZL_taQRI'
 
     bot = ObigramClient(bot_token)
     bot.onMessage(onmessage)
